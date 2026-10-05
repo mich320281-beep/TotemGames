@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Portfolio - Neon Deep</title>
+    <style>
+        /* БАЗОВЫЕ НАСТРОЙКИ */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background-color: #000000;
+            color: #ffffff;
+            overflow-x: hidden;
+            cursor: url('https://play.vsthemes.org/t-cursors/53821/ae707f309e4d64ff3b3bf9349d263e0f.webp'), auto;
+        }
+
+        a, button {
+            cursor: pointer;
+        }
+
+        /* ДЕКОРАТИВНЫЙ ФОН */
+        .bg-container {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1;
+            background: radial-gradient(circle at center, #0a0a0a 0%, #000000 100%);
+        }
+
+        .grid-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 255, 0, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 0, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        .blob {
+            position: absolute;
+            width: 500px; height: 500px;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.3;
+            animation: moveBlobs 25s infinite alternate ease-in-out;
+        }
+
+        .blob-purple { background: #A020F0; top: -100px; right: -100px; }
+        .blob-green { background: #00FF00; bottom: -150px; left: -150px; animation-delay: -12s; }
+
+        /* МЯГКИЙ БЛОБ ЗА КУРСОРОМ */
+        #cursor-blob {
+            position: fixed;
+            width: 300px; height: 300px;
+            background: radial-gradient(circle, rgba(160, 32, 240, 0.15) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1;
+            transform: translate(-50%, -50%);
+            transition: transform 0.1s ease-out;
+            filter: blur(40px);
+        }
+
+        /* ГЛИТЧ-ЭФФЕКТ */
+        .glitch {
+            position: relative;
+            display: inline-block;
+        }
+
+        .glitch:hover::before, .glitch:hover::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: black;
+        }
+
+        .glitch:hover::before {
+            left: 2px;
+            text-shadow: -2px 0 #ff00c1;
+            clip: rect(44px, 450px, 56px, 0);
+            animation: glitch-anim 5s infinite linear alternate-reverse;
+        }
+
+        .glitch:hover::after {
+            left: -2px;
+            text-shadow: -2px 0 #00fff9, 2px 2px #ff00c1;
+            animation: glitch-anim2 1s infinite linear alternate-reverse;
+        }
+
+        @keyframes glitch-anim {
+            0% { clip: rect(31px, 9999px, 94px, 0); }
+            20% { clip: rect(62px, 9999px, 42px, 0); }
+            100% { clip: rect(67px, 9999px, 20px, 0); }
+        }
+
+        /* ТЕХНОЛОГИЧЕСКИЙ СТЕК */
+        .tech-stack {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 40px;
+            flex-wrap: wrap;
+        }
+
+        .tech-tag {
+            background: rgba(160, 32, 240, 0.1);
+            border: 1px solid rgba(160, 32, 240, 0.4);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            color: #00FF00;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: 0.3s;
+        }
+
+        .tech-tag:hover {
+            background: #A020F0;
+            color: #fff;
+            box-shadow: 0 0 15px #A020F0;
+            transform: scale(1.1);
+        }
+
+        /* УПРАВЛЕНИЕ ЗВУКОМ */
+        .sound-control {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid #00FF00;
+            color: #00FF00;
+            padding: 10px;
+            border-radius: 50%;
+            width: 50px; height: 50px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px;
+            transition: 0.3s;
+        }
+
+        .sound-control:hover { background: #00FF00; color: #000; }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 25px 50px;
+            border-bottom: 2px solid rgba(0, 255, 0, 0.3);
+            backdrop-filter: blur(10px);
+            position: sticky; top: 0; z-index: 100;
+        }
+
+        .logo {
+            color: #fff; font-size: 22px; font-weight: 800;
+            text-decoration: none; letter-spacing: 3px;
+        }
+
+        nav ul { display: flex; list-style: none; gap: 30px; margin: 0; padding: 0; }
+        nav a { color: #A020F0; text-decoration: none; font-weight: 500; transition: 0.4s; }
+        nav a:hover { color: #00FF00; }
+
+        .hero {
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            min-height: 90vh; padding: 20px;
+        }
+
+        /* КАРТОЧКА С НАКЛОНОМ И ПАРЕНИЕМ */
+        .card-wrapper {
+            width: 75%; max-width: 1000px;
+            animation: float 6s infinite ease-in-out;
+            z-index: 2;
+        }
+
+        .card {
+            width: 100%;
+            background-image: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=1600');
+            background-size: cover; 
+            border: 1px solid rgba(160, 32, 240, 0.5);
+            border-radius: 40px; padding: 60px; text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            transform-style: preserve-3d;
+            transition: transform 0.1s ease-out;
+            box-sizing: border-box;
+        }
+
+        .card h1, .card p, .tech-stack {
+            transform: translateZ(50px);
+        }
+
+        h1 { font-size: clamp(30px, 5vw, 55px); margin-bottom: 25px; background: linear-gradient(to right, #fff, #A020F0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        p { font-size: 20px; color: #cccccc; max-width: 600px; margin: 0 auto; }
+
+        @keyframes moveBlobs {
+            0% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(150px, 80px) scale(1.1); }
+            100% { transform: translate(-80px, 150px) scale(0.9); }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        @media (max-width: 768px) {
+            header { flex-direction: column; gap: 20px; }
+            .card-wrapper { width: 95%; }
+            .card { padding: 30px; }
+            #cursor-blob { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div id="cursor-blob"></div>
+
+    <div class="bg-container">
+        <div class="grid-overlay"></div>
+        <div class="blob blob-purple"></div>
+        <div class="blob blob-green"></div>
+    </div>
+
+    <button class="sound-control" id="mute-btn">🔈</button>
+
+    <header>
+        <a href="#" class="logo glitch" data-text="AI.PROJECT">AI.PROJECT</a>
+        <nav>
+            <ul>
+                <li><a href="#about" class="glitch" data-text="Обо мне">Обо мне</a></li>
+                <li><a href="#portfolio" class="glitch" data-text="Портфолио">Портфолио</a></li>
+                <li><a href="#contacts" class="glitch" data-text="Контакты">Контакты</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="hero">
+        <div class="card-wrapper">
+            <div class="card" data-tilt data-tilt-max="10" data-tilt-speed="400" data-tilt-perspective="1000">
+                <h1 class="glitch" data-text="ИСКУССТВЕННЫЙ ИНТЕЛЛЕКТ">ИСКУССТВЕННЫЙ ИНТЕЛЛЕКТ</h1>
+                <p>Мы создаем архитектуру будущего, где алгоритмы становятся продолжением человеческого разума.</p>
+                
+                <div class="tech-stack">
+                    <div class="tech-tag">Neural Networks</div>
+                    <div class="tech-tag">Deep Learning</div>
+                    <div class="tech-tag">Python</div>
+                    <div class="tech-tag">PyTorch</div>
+                    <div class="tech-tag">GPT-4</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <audio id="bg-music" loop src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3"></audio>
+    <audio id="click-sound" src="https://www.fesliyanstudios.com/play-mp3/6668"></audio>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js"></script>
+
+    <script>
+        const blob = document.getElementById('cursor-blob');
+        window.addEventListener('mousemove', (e) => {
+            requestAnimationFrame(() => {
+                blob.style.left = e.clientX + 'px';
+                blob.style.top = e.clientY + 'px';
+            });
+        });
+
+        const music = document.getElementById('bg-music');
+        const clickSfx = document.getElementById('click-sound');
+        const muteBtn = document.getElementById('mute-btn');
+        let isPlaying = false;
+
+        // ГРОМКОСТЬ УМЕНЬШЕНА (ПУНКТ 4)
+        music.volume = 0.05; 
+        clickSfx.volume = 0.1;
+
+        muteBtn.addEventListener('click', () => {
+            if (!isPlaying) {
+                music.play();
+                muteBtn.textContent = '🔊';
+            } else {
+                music.pause();
+                muteBtn.textContent = '🔈';
+            }
+            isPlaying = !isPlaying;
+        });
+
+        document.querySelectorAll('a, .tech-tag').forEach(el => {
+            el.addEventListener('mousedown', () => {
+                clickSfx.currentTime = 0;
+                clickSfx.play();
+            });
+        });
+
+        VanillaTilt.init(document.querySelector(".card"), {
+            max: 10,
+            speed: 400,
+            glare: true,
+            "max-glare": 0.2,
+        });
+    </script>
+</body>
+</html>
