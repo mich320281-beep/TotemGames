@@ -8,7 +8,7 @@
 html,body{width:100%;height:100%}
 body{font-family:'Alegreya Sans','Segoe UI',Arial,sans-serif;background:#070503;color:#f0e6cf;overflow:hidden}
 ::-webkit-scrollbar{width:9px}::-webkit-scrollbar-thumb{background:#5a4522;border-radius:5px;border:2px solid #171008}::-webkit-scrollbar-track{background:#171008}
-#menu,#lobbyScreen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;overflow-y:auto;padding:34px 0;background:linear-gradient(180deg,rgba(8,5,2,.55),rgba(6,4,2,.88) 70%),url('https://image.qwenlm.ai/public_source/544b39b9-5574-41de-93f9-f3da278b524d/155cbeb1a-b012-459d-ba90-e6ab6c7820c0.png') center/cover no-repeat;background-attachment:fixed}
+#menu,#lobbyScreen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;overflow-y:auto;padding:34px 0;background:linear-gradient(180deg,rgba(8,5,2,.55),rgba(6,4,2,.88) 70%),radial-gradient(circle at 50% 40%,rgba(90,70,40,.3),rgba(10,7,3,.95)) center/cover no-repeat;background-attachment:fixed}
 h1{font-family:'Cormorant',serif;font-size:56px;letter-spacing:.05em;margin-bottom:8px;text-align:center;background:linear-gradient(180deg,#ffe9b0,#d8ab4c 55%,#8a6420);-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:titleGlow 3s ease-in-out infinite alternate}
 @keyframes titleGlow{from{filter:drop-shadow(0 3px 10px rgba(255,180,60,.25))}to{filter:drop-shadow(0 5px 24px rgba(255,200,90,.6))}}
 .subtitle{color:#cbb88d;margin-bottom:26px;font-size:15px;letter-spacing:.28em;text-transform:uppercase;text-shadow:0 2px 6px #000}
@@ -27,9 +27,9 @@ button:disabled{opacity:.5;cursor:not-allowed;transform:none;filter:grayscale(.6
 .race-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:15px 0}
 .race-card{border:2px solid #4a3a1c;border-radius:10px;padding:12px 6px 10px;cursor:pointer;transition:all .25s;text-align:center;height:132px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;position:relative;overflow:hidden;background:center/cover no-repeat;box-shadow:0 5px 16px rgba(0,0,0,.55)}
 .race-card[data-race="peasants"]{background-image:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.85)),url('https://image.qwenlm.ai/public_source/544b39b9-5574-41de-93f9-f3da278b524d/199c689c3-d783-4d16-a93f-676cad655ce8.png')}
-.race-card[data-race="monsters"]{background-image:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.85)),url('https://image.qwenlm.ai/public_source/544b39b9-5574-41de-93f9-f3da278b524d/1b40b5cdf-af63-4b99-be82-b595230a278b.png')}
-.race-card[data-race="bandits"]{background-image:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.85)),url('https://image.qwenlm.ai/public_source/544b39b9-5574-41de-93f9-f3da278b524d/1d665c336-8379-4076-a08c-15e5af8c26a4.png')}
-.race-card[data-race="giants"]{background-image:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.85)),url('https://image.qwenlm.ai/public_source/544b39b9-5574-41de-93f9-f3da278b524d/1d78d62fe-5d1a-40d0-b12b-801039ac1b97.png')}
+.race-card[data-race="monsters"]{background-image:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.85)),linear-gradient(180deg,rgba(100,200,100,.15),rgba(0,0,0,.85))}
+.race-card[data-race="bandits"]{background-image:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.85)),linear-gradient(180deg,rgba(200,100,100,.15),rgba(0,0,0,.85))}
+.race-card[data-race="giants"]{background-image:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.85)),linear-gradient(180deg,rgba(100,150,200,.15),rgba(0,0,0,.85))}
 .race-card:hover{transform:translateY(-4px);border-color:#d8ab4c}
 .race-card.selected{border-color:#f4d488;box-shadow:0 0 0 2px rgba(244,212,136,.4),0 0 28px rgba(244,212,136,.45)}
 .race-icon{font-size:30px;margin-bottom:4px;filter:drop-shadow(0 2px 5px rgba(0,0,0,.95))}
