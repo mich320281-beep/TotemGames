@@ -330,31 +330,8 @@ function getSelectedBuilding(state){ return state?state.buildings.find(b=>b.id==
 function getSelectedWorker(state){ return state?state.workers.find(w=>w.id===selectedWorkerId)||null:null; }
 function clearSelection(){ selectedUnitIds=[];selectedBuildingId=null;selectedWorkerId=null; }
 // ==================== ЛОББИ ====================
-function createLobby(){
-myNickname=document.getElementById('nicknameInput').value.trim(); if(!myNickname)return alert('Введите ник!');
-lobbyId=Math.floor(10000+Math.random()*90000).toString(); isHost=true;
-lobbyPlayers=[{id:myId,nick:myNickname,race:null,role:null}];
-lobbyChannel=new BroadcastChannel('lobby_'+lobbyId); lobbyChannel.onmessage=onLobbyMessage;
-document.getElementById('menu').style.display='none'; document.getElementById('lobbyScreen').style.display='flex';
-document.getElementById('lobbyCode').textContent=lobbyId; document.getElementById('startGameBtn').style.display='block';
-updateLobbyUI();
-}
-function joinLobby(){
-myNickname=document.getElementById('nicknameInput').value.trim(); const code=document.getElementById('lobbyCodeInput').value.trim();
-if(!myNickname)return alert('Введите ник!'); if(!code||code.length!==5)return alert('Введите корректный код!');
-lobbyId=code; isHost=false;
-lobbyChannel=new BroadcastChannel('lobby_'+lobbyId); lobbyChannel.onmessage=onLobbyMessage;
-lobbyChannel.postMessage({type:'join',from:myId,nick:myNickname});
-document.getElementById('menu').style.display='none'; document.getElementById('lobbyScreen').style.display='flex';
-document.getElementById('lobbyCode').textContent=lobbyId;
-}
-function onLobbyMessage(event){
-const data=event.data; if(data.from===myId)return;
-if(data.type==='join'&&isHost){ lobbyPlayers.push({id:data.from,nick:data.nick,race:null,role:null}); lobbyChannel.postMessage({type:'state',from:myId,players:lobbyPlayers}); updateLobbyUI(); }
-if(data.type==='state'){ lobbyPlayers=data.players; updateLobbyUI(); }
-if(data.type==='update'){ if(isHost&&data.from!==data.player.id)return; const ex=lobbyPlayers.find(p=>p.id===data.player.id); if(ex)Object.assign(ex,data.player); else lobbyPlayers.push(data.player); updateLobbyUI(); }
-if(data.type==='start') startActualGame();
-}
+function createLobby(){}
+function joinLobby(){}
 // [FIX 1] проверка: занята ли роль в расе (капитан — строго 1, вассал — не более 2)
 function roleTakenInRace(role,race,exceptId){
 if(role==='captain') return lobbyPlayers.some(p=>p.id!==exceptId&&p.race===race&&p.role==='captain');
@@ -450,7 +427,7 @@ document.getElementById('trCostAll').textContent='+4'+RACES[myRace].res1Icon+' +
 document.getElementById('raceBadge').textContent=RACES[myRace].name; document.getElementById('roleBadge').textContent=myRole==='captain'?'👑 Капитан':'⛏️ Вассал';
 document.getElementById('roleBadge').style.background=myRole==='captain'?'linear-gradient(180deg,#f2d186,#c99b3f)':'linear-gradient(180deg,#54749a,#26405c)';
 document.getElementById('roleBadge').style.color=myRole==='captain'?'#241703':'#fff'; document.getElementById('nickBadge').textContent=myNickname;
-gameChannel=new BroadcastChannel('game_'+lobbyId); gameChannel.onmessage=onGameMessage;
+gameChannel=createP2PGameChannel(); gameChannel.onmessage=onGameMessage;
 if(isHost){ initHostState(); sendFullState(); }
 else{
 gameChannel.postMessage({type:'needState',from:myId});
@@ -2991,6 +2968,229 @@ drawStageEntities=function(st){
  for(const e of [...st.units,...st.workers.filter(w=>!w.insideBuilding),...Object.values(st.players).map(p=>p.vassal).filter(v=>v&&!v.dead)])if(isKrakenProtected(e,st)&&visibleWorld(e.x,e.y,70)){const size=e.unitType?UNIT_STATS[e.unitType].size:16;drawProtectionDome(e.x,e.y-3,size+10,size+17,krakenShieldTime(st,e.race),false);}
  for(const m of st.meteors||[]){if(m.landed||m.claimed)continue;const t=Math.max(0,Math.min(1,(m.landsAt-st.gameTime)/MATCH_RULES.meteorWarning)),x=m.x-t*180,y=m.y-t*360;if(!visibleWorld(x,y))continue;ctx.save();const tail=ctx.createLinearGradient(x-65,y-110,x,y);tail.addColorStop(0,'rgba(204,67,25,0)');tail.addColorStop(.6,'rgba(247,126,43,.45)');tail.addColorStop(1,'#ffd39a');ctx.fillStyle=tail;ctx.beginPath();ctx.moveTo(x-80,y-140);ctx.lineTo(x+12,y-8);ctx.lineTo(x-14,y+8);ctx.fill();softEllipse(ctx,x,y,29,34,'rgba(255,149,52,.6)');ctx.fillStyle='#6d5040';ctx.strokeStyle='#efaa63';ctx.lineWidth=2;ctx.beginPath();for(let i=0;i<7;i++){const a=i*Math.PI*2/7+gfxTime*.3,r=14+(i%3)*2;i?ctx.lineTo(x+Math.cos(a)*r,y+Math.sin(a)*r):ctx.moveTo(x+Math.cos(a)*r,y+Math.sin(a)*r);}ctx.closePath();ctx.fill();ctx.stroke();for(let i=0;i<6;i++){ctx.fillStyle='rgba(255,196,104,'+(1-i/7)+')';ctx.beginPath();ctx.arc(x-15-i*9+Math.sin(gfxTime*5+i)*3,y-20-i*15,1.8-i*.15,0,Math.PI*2);ctx.fill();}ctx.restore();}
  const k=st.kraken;if(k.active&&k.meleeWave&&k.attackAnim>0){ctx.save();ctx.strokeStyle='rgba(180,238,255,'+k.attackAnim*1.6+')';ctx.lineWidth=8;ctx.beginPath();ctx.arc(k.x,k.y,st.lake.r*Math.max(0,1-k.attackAnim/.5),0,Math.PI*2);ctx.stroke();ctx.restore();}
+};
+
+</script>
+<script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
+<script>
+'use strict';
+// Simple one-file multiplayer transport: PeerJS Cloud for discovery, WebRTC for game data.
+let p2pPeer = null, p2pHostConnection = null, p2pPending = false, p2pStarted = false, p2pStopped = false;
+const p2pGuests = new Map();
+const P2P_PREFIX = 'kings-vassals-';
+
+function p2pStatus(text) {
+  let el = document.getElementById('networkStatus');
+  if (!el) {
+    el = document.createElement('div'); el.id = 'networkStatus';
+    el.style.cssText = 'position:fixed;bottom:8px;left:8px;z-index:10001;background:#171008;color:#f4d488;padding:8px 12px;border:1px solid #6d5426;border-radius:8px;max-width:90vw';
+    document.body.appendChild(el);
+  }
+  el.textContent = text;
+}
+function p2pNickname() {
+  const nick = document.getElementById('nicknameInput').value.trim();
+  if (!nick || nick.length > 32 || /[<>\u0000-\u001f]/.test(nick)) { alert('Ник: 1–32 символа, без < и >.'); return null; }
+  return nick;
+}
+function p2pSend(connection, message, snapshot = false) {
+  if (!connection?.open || p2pStopped) return;
+  // PeerJS reports queued message count here. Drop stale world snapshots first.
+  if (snapshot && (connection.bufferSize || 0) > 2) return;
+  if ((connection.bufferSize || 0) > 64) { p2pStop('Соединение слишком медленное. Создайте новое лобби.'); return; }
+  try { connection.send(message); } catch { if (!snapshot) p2pStop('Не удалось отправить данные. Создайте новое лобби.'); }
+}
+function p2pBroadcast(message, except = null, snapshot = false) {
+  for (const connection of p2pGuests.values()) if (connection !== except) p2pSend(connection, message, snapshot);
+}
+function p2pLobbyState() { return { kind: 'lobby', players: lobbyPlayers }; }
+function p2pApplyLobby(players) {
+  lobbyPlayers = players;
+  const me = lobbyPlayers.find(player => player.id === myId);
+  if (me) { myRace = me.race; myRole = me.role; }
+  document.querySelectorAll('.race-card').forEach(card => card.classList.toggle('selected', card.dataset.race === myRace));
+  document.getElementById('startGameBtn').style.display = isHost ? 'block' : 'none';
+  updateLobbyUI();
+}
+function p2pShowLobby() {
+  document.getElementById('menu').style.display = 'none';
+  document.getElementById('lobbyScreen').style.display = 'flex';
+  document.getElementById('lobbyCode').textContent = lobbyId;
+  p2pStatus('Прямое соединение · код ' + lobbyId);
+}
+function p2pStop(message) {
+  if (p2pStopped) return;
+  p2pStopped = true; p2pPending = false; gameEnded = true; keys = {};
+  clearInterval(window.__stateReqTimer);
+  if (gameLoopWorker) gameLoopWorker.postMessage('stop');
+  cancelAnimationFrame(animationId);
+  try { p2pHostConnection?.close(); } catch {}
+  for (const connection of p2pGuests.values()) { try { connection.close(); } catch {} }
+  try { p2pPeer?.destroy(); } catch {}
+  p2pStatus(message);
+  const cover = document.createElement('div');
+  cover.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.9);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#f4d488;padding:30px;text-align:center';
+  const text = document.createElement('p'); text.textContent = message; cover.appendChild(text);
+  const button = document.createElement('button'); button.className = 'btn-primary'; button.textContent = 'Вернуться в меню'; button.onclick = () => location.reload(); cover.appendChild(button);
+  document.body.appendChild(cover);
+}
+function p2pFailBeforeLobby(message) {
+  p2pPending = false; p2pStopped = true;
+  try { p2pHostConnection?.close(); } catch {} try { p2pPeer?.destroy(); } catch {}
+  p2pPeer = null; p2pHostConnection = null;
+  p2pStatus(message); alert(message);
+}
+function p2pGameForHost(data, connection) {
+  if (!data || typeof data !== 'object' || typeof data.type !== 'string') return;
+  data.from = connection.peer;
+  if (['fullState', 'upgResult', 'worldNotice'].includes(data.type)) return;
+  const player = lobbyPlayers.find(p => p.id === connection.peer); if (!player) return;
+  if (data.type === 'chat') {
+    if (typeof data.msg !== 'string' || data.msg.length > 1000) return;
+    data.nick = player.nick; data.race = player.race;
+    for (const guest of p2pGuests.values()) {
+      const target = lobbyPlayers.find(p => p.id === guest.peer);
+      if (guest === connection) continue;
+      if (data.ch === 'global' || data.ch === 'race' && target?.race === player.race || data.ch === 'pm' && guest.peer === data.to) p2pSend(guest, { kind: 'game', data });
+    }
+    onGameMessage({ data }); return;
+  }
+  // BroadcastChannel used to expose commands to every tab. Preserve that behavior for upgrade requests.
+  p2pBroadcast({ kind: 'game', data }, connection);
+  onGameMessage({ data });
+}
+function p2pChoose(playerId, race, role) {
+  if (p2pStarted || !RACES[race] || role !== null && !['captain', 'vassal'].includes(role)) return;
+  const player = lobbyPlayers.find(p => p.id === playerId); if (!player) return;
+  if (role && roleTakenInRace(role, race, playerId)) {
+    const connection = p2pGuests.get(playerId);
+    if (connection) p2pSend(connection, { kind: 'notice', message: 'Эта роль уже занята. Выберите другую.' });
+    return;
+  }
+  player.race = race; player.role = role;
+  p2pApplyLobby(lobbyPlayers); p2pBroadcast(p2pLobbyState());
+}
+function p2pHandleHostData(connection, message) {
+  if (!message || typeof message !== 'object') return;
+  if (message.kind === 'choose') { p2pChoose(connection.peer, message.race, message.role); return; }
+  if (message.kind === 'game' && p2pStarted) p2pGameForHost(message.data, connection);
+}
+function p2pAcceptGuest(connection) {
+  const nick = typeof connection.metadata?.nick === 'string' ? connection.metadata.nick.trim() : '';
+  if (p2pStarted || lobbyPlayers.length >= 12 || !nick || nick.length > 32 || /[<>\u0000-\u001f]/.test(nick)) { connection.close(); return; }
+  connection.on('open', () => {
+    if (p2pStarted || p2pGuests.has(connection.peer)) { connection.close(); return; }
+    connection.player = { id: connection.peer, nick, race: null, role: null };
+    p2pGuests.set(connection.peer, connection); lobbyPlayers.push(connection.player);
+    connection.on('data', message => p2pHandleHostData(connection, message));
+    connection.on('close', () => {
+      if (!p2pGuests.delete(connection.peer)) return;
+      if (p2pStarted) { p2pBroadcast({ kind: 'ended', message: 'Игрок отключился. Создайте новое лобби.' }); p2pStop('Игрок отключился. Создайте новое лобби.'); }
+      else { lobbyPlayers = lobbyPlayers.filter(p => p.id !== connection.peer); p2pApplyLobby(lobbyPlayers); p2pBroadcast(p2pLobbyState()); }
+    });
+    p2pSend(connection, { kind: 'joined', code: lobbyId, id: connection.peer, players: lobbyPlayers });
+    p2pApplyLobby(lobbyPlayers); p2pBroadcast(p2pLobbyState(), connection);
+  });
+}
+function p2pCreateAttempt(attempt = 0) {
+  const code = String(Math.floor(10000 + Math.random() * 90000));
+  const peer = p2pPeer = new Peer(P2P_PREFIX + code);
+  peer.on('open', id => {
+    if (p2pPeer !== peer) return;
+    p2pPending = false; p2pStopped = false; isHost = true; lobbyId = code; myId = id; myRace = null; myRole = null;
+    lobbyPlayers = [{ id: myId, nick: myNickname, race: null, role: null }];
+    lobbyChannel = { postMessage() {}, close() { peer.destroy(); } };
+    peer.on('connection', p2pAcceptGuest);
+    p2pApplyLobby(lobbyPlayers); p2pShowLobby();
+  });
+  peer.on('error', error => {
+    if (p2pPeer !== peer) return;
+    if (error.type === 'unavailable-id' && attempt < 12) { peer.destroy(); p2pCreateAttempt(attempt + 1); return; }
+    if (!lobbyId) p2pFailBeforeLobby('Не удалось создать лобби: ' + (error.type || 'ошибка сети') + '. Попробуйте ещё раз.');
+  });
+  peer.on('disconnected', () => {
+    if (!lobbyId || p2pStopped) return;
+    p2pStatus('Восстанавливаем службу подключения…');
+    try { peer.reconnect(); } catch {}
+    setTimeout(() => { if (peer.disconnected && !p2pStarted && !p2pStopped) p2pStop('Связь со службой подключения потеряна. Создайте новое лобби.'); }, 12000);
+  });
+}
+function createLobby() {
+  if (p2pPending || lobbyId) return;
+  if (typeof Peer !== 'function') return alert('Не загрузилась библиотека подключения. Проверьте интернет и обновите страницу.');
+  const nick = p2pNickname(); if (!nick) return;
+  myNickname = nick; p2pPending = true; p2pStopped = false; p2pStatus('Создаём лобби…'); p2pCreateAttempt();
+}
+function joinLobby() {
+  if (p2pPending || lobbyId) return;
+  if (typeof Peer !== 'function') return alert('Не загрузилась библиотека подключения. Проверьте интернет и обновите страницу.');
+  const nick = p2pNickname(); if (!nick) return;
+  const code = document.getElementById('lobbyCodeInput').value.trim();
+  if (!/^\d{5}$/.test(code)) return alert('Введите код из 5 цифр.');
+  myNickname = nick; p2pPending = true; p2pStopped = false; isHost = false; p2pStatus('Ищем лобби…');
+  const peer = p2pPeer = new Peer();
+  const timeout = setTimeout(() => { if (!lobbyId) p2pFailBeforeLobby('Лобби не ответило. Проверьте код и попробуйте ещё раз.'); }, 20000);
+  peer.on('open', id => {
+    myId = id;
+    const connection = p2pHostConnection = peer.connect(P2P_PREFIX + code, { metadata: { nick }, serialization: 'binary', reliable: true });
+    connection.on('open', () => p2pStatus('Подключаемся к лобби…'));
+    connection.on('data', message => {
+      if (!message || typeof message !== 'object') return;
+      if (message.kind === 'joined') {
+        clearTimeout(timeout); p2pPending = false; lobbyId = message.code; myId = message.id;
+        lobbyChannel = { postMessage() {}, close() { peer.destroy(); } };
+        p2pApplyLobby(message.players); p2pShowLobby(); return;
+      }
+      if (message.kind === 'lobby') { p2pApplyLobby(message.players); return; }
+      if (message.kind === 'notice') { p2pStatus(message.message); alert(message.message); return; }
+      if (message.kind === 'start' && !p2pStarted) {
+        p2pApplyLobby(message.players); p2pStarted = true; startActualGame(); p2pStatus('Прямое соединение · матч ' + lobbyId); return;
+      }
+      if (message.kind === 'game' && p2pStarted) gameChannel?.onmessage?.({ data: message.data });
+      if (message.kind === 'ended') p2pStop(message.message);
+    });
+    connection.on('close', () => { if (lobbyId && !p2pStopped) p2pStop('Создатель отключился. Создайте новое лобби.'); });
+  });
+  peer.on('error', error => { clearTimeout(timeout); if (!lobbyId) p2pFailBeforeLobby(error.type === 'peer-unavailable' ? 'Лобби не найдено. Проверьте код и убедитесь, что создатель не закрыл страницу.' : 'Ошибка подключения: ' + (error.type || 'сеть') + '.'); });
+  peer.on('disconnected', () => {
+    if (!lobbyId || p2pStopped) return;
+    p2pStatus('Восстанавливаем службу подключения…');
+    try { peer.reconnect(); } catch {}
+    setTimeout(() => { if (peer.disconnected && !p2pStarted && !p2pStopped) p2pStop('Связь со службой подключения потеряна. Создайте новое лобби.'); }, 12000);
+  });
+}
+function createP2PGameChannel() {
+  return {
+    onmessage: null,
+    postMessage(data) {
+      if (isHost) p2pBroadcast({ kind: 'game', data }, null, data?.type === 'fullState');
+      else p2pSend(p2pHostConnection, { kind: 'game', data }, data?.type === 'fullState');
+    },
+    close() { try { p2pPeer?.destroy(); } catch {} }
+  };
+}
+selectRace = race => {
+  if (!lobbyId || p2pStarted) return;
+  const role = myRole && !roleTakenInRace(myRole, race, myId) ? myRole : null;
+  if (isHost) p2pChoose(myId, race, role); else p2pSend(p2pHostConnection, { kind: 'choose', race, role });
+};
+selectRole = role => {
+  if (!myRace) return alert('Сначала выберите расу!');
+  if (p2pStarted) return;
+  if (isHost) p2pChoose(myId, myRace, role); else p2pSend(p2pHostConnection, { kind: 'choose', race: myRace, role });
+};
+startGame = () => {
+  if (!isHost || p2pStarted) return;
+  if (!lobbyPlayers.every(p => p.race && p.role)) return alert('Все должны выбрать расу и роль!');
+  const selectedRaces = [...new Set(lobbyPlayers.map(p => p.race))];
+  for (const race of selectedRaces) if (lobbyPlayers.filter(p => p.race === race && p.role === 'captain').length !== 1) return alert('В каждой выбранной расе должен быть ровно один капитан!');
+  p2pStarted = true; p2pBroadcast({ kind: 'start', players: lobbyPlayers }); startActualGame(); p2pStatus('Прямое соединение · матч ' + lobbyId);
+};
+// Internet text must be rendered as text rather than executable HTML.
+addChatMessage = function(nick, msg, system = false, style = '') {
+  const chat = document.getElementById('chatMessages'), div = document.createElement('div'), label = document.createElement('span');
+  div.className = 'chat-msg' + (system ? ' system' : style === 'race' || style === 'pm' ? ' ' + style : '');
+  label.className = 'chat-nick'; label.textContent = nick + ': '; div.append(label, document.createTextNode(String(msg))); chat.appendChild(div); chat.scrollTop = chat.scrollHeight;
 };
 
 </script>
