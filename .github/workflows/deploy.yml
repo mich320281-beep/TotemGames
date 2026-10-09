@@ -3,7 +3,7 @@ name: Deploy to SpaceWeb
 on:
   push:
     branches:
-      - main # Если ваша главная ветка называется master, замените на master
+      - main
   workflow_dispatch:
 
 jobs:
@@ -11,32 +11,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repository (Скачиваем код)
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build
-        run: npm run build
-
-      - name: Deploy via FTP to SpaceWeb
+      - name: Deploy via FTP to SpaceWeb (Сразу отправляем на хостинг)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          
-          # ВНИМАНИЕ: 
-          # Если у вас Next.js (static export), замените ./dist/ на ./out/
-          # Если у вас Vite/React/Vue, оставьте ./dist/
-          # Если у вас просто HTML/PHP в корне, поставьте ./
-          local-dir: ./
-          
+          local-dir: ./ # Загружаем всё, что есть в корне репозитория
           server-dir: ./
           dangerous-clean-slate: false
