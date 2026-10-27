@@ -11,15 +11,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository (Скачиваем код)
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Deploy via FTP to SpaceWeb (Сразу отправляем на хостинг)
+      - name: Deploy Site folder via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: ./ # Загружаем всё, что есть в корне репозитория
+          local-dir: ./Site/
           server-dir: ./
           dangerous-clean-slate: false
